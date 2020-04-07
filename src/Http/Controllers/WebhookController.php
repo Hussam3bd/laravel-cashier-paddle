@@ -1,13 +1,16 @@
 <?php
 
-namespace App\Http\Controllers\Payment;
+namespace Laravel\Cashier\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Routing\Controller;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Laravel\Cashier\Cashier;
+use Laravel\Cashier\Events\WebhookHandled;
+use Laravel\Cashier\Events\WebhookReceived;
 use Laravel\Cashier\Payment;
 use Laravel\Cashier\Subscription;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,10 +29,16 @@ class WebhookController extends Controller
         $payload = $request->all();
         $method = 'handle' . Str::studly($payload['alert_name']);
 
-        if (method_exists($this, $method)) {
-            $payload['passthrough'] = json_decode($payload['passthrough']);
+        WebhookReceived::dispatch($payload);
 
-            return $this->{$method}($payload);
+        if (method_exists($this, $method)) {
+            $payload['passthrough'] = json_decode($payload['passthrough'], true);
+
+            $response = $this->{$method}($payload);
+
+            WebhookHandled::dispatch($payload);
+
+            return $response;
         }
 
         return $this->missingMethod();
@@ -44,8 +53,38 @@ class WebhookController extends Controller
      */
     public function handleSubscriptionCreated(array $payload)
     {
-        if ($user = User::find($payload['passthrough']['user_id'])) {
-            $user->paddle_id = $payload['user_id'];
+        if (count($payload['passthrough']) && isset($payload['passthrough']['user_id'])) {
+            $user = config('cashier.model');
+            if ($user = (new $user)->find($payload['passthrough']['user_id'])) {
+                /** @var User $user */
+
+                # update customer
+                $user->paddle_id = $payload['user_id'];
+                $user->save();
+
+                # create subscriptions
+                $user->newSubscription($payload);
+            }
+        }
+
+        return $this->successMethod();
+    }
+
+    /**
+     * @param array $payload
+     *
+     * @return Response
+     */
+    public function handleSubscriptionCancelled(array $payload)
+    {
+        if ($user = $this->getUserByPaddleId($payload['user_id'])) {
+            $cancellationEffectiveAt = null;
+            if ($payload['cancellation_effective_date']) {
+                $time = Carbon::parse($payload['event_time'])->format('H:i:s');
+                $cancellationEffectiveAt = Carbon::parse("{$payload['cancellation_effective_date']} {$time}");
+            }
+
+            $user->subscription($payload['subscription_id'])->cancel($cancellationEffectiveAt);
         }
 
         return $this->successMethod();
@@ -207,11 +246,11 @@ class WebhookController extends Controller
      *
      * @param string|null $paddleId
      *
-     * @return User
+     * @return \Laravel\Cashier\Billable
      */
     protected function getUserByPaddleId($paddleId)
     {
-        return User::where('paddle_id', $paddleId);
+        return Cashier::findBillable($paddleId);
     }
 
     /**

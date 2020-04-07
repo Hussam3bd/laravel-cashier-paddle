@@ -2,7 +2,7 @@
 
 namespace Laravel\Cashier;
 
-use Illuminate\Support\Facades\Http;
+use GuzzleHttp\Client;
 
 class Paddle
 {
@@ -13,6 +13,16 @@ class Paddle
     const STATUS_TRIALING = 'trialing';
     const STATUS_PAUSED = 'paused';
     const STATUS_CANCELLED = 'deleted';
+
+    protected $client;
+
+    public function __construct()
+    {
+        $this->client = new Client([
+            'base_uri' => self::API_ENDPOINT,
+            'headers' => ['Content-Type' => 'application/x-www-form-urlencoded']
+        ]);
+    }
 
     /**
      * @param array $data
@@ -107,11 +117,9 @@ class Paddle
      */
     public static function post($url, array $data = [])
     {
-        $response = Http::withHeaders([
-            'Content-Type' => 'multipart/form-data'
-        ])->post(self::API_ENDPOINT . $url, Cashier::paddleOptions($data));
-
-        return $response;
+        return (new Paddle())->client->post($url, [
+            'form_params' => Cashier::paddleOptions($data),
+        ]);
     }
 
     /**

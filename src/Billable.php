@@ -3,6 +3,7 @@
 namespace Laravel\Cashier;
 
 use Exception;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Laravel\Cashier\Exceptions\InvalidInvoice;
 use Laravel\Cashier\Exceptions\InvalidPaddleCustomer;
@@ -70,14 +71,29 @@ trait Billable
     /**
      * Begin creating a new subscription.
      *
-     * @param string $subscription
-     * @param string $plan
+     * @param array $data
      *
-     * @return \Laravel\Cashier\SubscriptionBuilder
+     * @return \Illuminate\Database\Eloquent\Model
      */
-    public function newSubscription($subscription, $plan)
+    public function newSubscription(array $data = [])
     {
-        return new SubscriptionBuilder($this, $subscription, $plan);
+        $trialEndsAt = null;
+        if ($data['status'] === Paddle::STATUS_TRIALING) {
+            $time = Carbon::parse($data['event_time'])->format('H:i:s');
+            $trialEndsAt = Carbon::parse("{$data['next_bill_date']} {$time}");
+        }
+
+        return $this->subscriptions()->create([
+            'user_id' => $this->id,
+            'paddle_id' => $data['subscription_id'],
+            'paddle_plan_id' => $data['subscription_plan_id'],
+            'paddle_cancel_url' => $data['cancel_url'],
+            'paddle_update_url' => $data['update_url'],
+            'paddle_status' => $data['status'],
+            'quantity' => $data['quantity'],
+            'trial_ends_at' => $trialEndsAt,
+            'ends_at' => null
+        ]);
     }
 
     /**
@@ -141,16 +157,16 @@ trait Billable
     /**
      * Get a subscription instance by name.
      *
-     * @param string $subscription
+     * @param $subscriptionId
      *
      * @return \Laravel\Cashier\Subscription|null
      */
-    public function subscription($subscription = 'default')
+    public function subscription($subscriptionId)
     {
         return $this->subscriptions->sortByDesc(function ($value) {
             return $value->created_at->getTimestamp();
-        })->first(function ($value) use ($subscription) {
-            return $value->name === $subscription;
+        })->first(function ($value) use ($subscriptionId) {
+            return $value->subscription_id === $subscriptionId;
         });
     }
 

@@ -6,6 +6,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
+use Laravel\Cashier\Exceptions\SubscriptionUpdateFailure;
 use LogicException;
 
 class Subscription extends Model
@@ -47,6 +48,14 @@ class Subscription extends Model
         $model = config('auth.providers.users.model');
 
         return $this->belongsTo($model, (new $model)->getForeignKey());
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
     }
 
     /**
@@ -475,17 +484,13 @@ class Subscription extends Model
     /**
      * Cancel the subscription at the end of the billing period.
      *
+     * @param null $cancellationEffectiveAt
+     *
      * @return $this
      */
-    public function cancel()
+    public function cancel($cancellationEffectiveAt = null)
     {
-        $subscription = $this->asStripeSubscription();
-
-        $subscription->cancel_at_period_end = true;
-
-        $subscription = $subscription->save();
-
-        $this->paddle_status = $subscription->status;
+        $this->paddle_status = Paddle::STATUS_CANCELLED;
 
         // If the user was on trial, we will set the grace period to end when the trial
         // would have ended. Otherwise, we'll retrieve the end of the billing period
@@ -493,9 +498,7 @@ class Subscription extends Model
         if ($this->onTrial()) {
             $this->ends_at = $this->trial_ends_at;
         } else {
-            $this->ends_at = Carbon::createFromTimestamp(
-                $subscription->current_period_end
-            );
+            $this->ends_at = $cancellationEffectiveAt ?? Carbon::now();
         }
 
         $this->save();
@@ -510,9 +513,7 @@ class Subscription extends Model
      */
     public function cancelNow()
     {
-        $subscription = $this->asStripeSubscription();
-
-        $subscription->cancel();
+        $this->cancel();
 
         $this->markAsCancelled();
 
@@ -528,7 +529,7 @@ class Subscription extends Model
     public function markAsCancelled()
     {
         $this->fill([
-            'paddle_status' => StripeSubscription::STATUS_CANCELED,
+            'paddle_status' => Paddle::STATUS_CANCELLED,
             'ends_at' => Carbon::now(),
         ])->save();
     }
@@ -635,20 +636,5 @@ class Subscription extends Model
         return $paymentIntent
             ? new Payment($paymentIntent)
             : null;
-    }
-
-    /**
-     * Get the subscription as a Stripe subscription object.
-     *
-     * @param array $expand
-     *
-     * @return \Stripe\Subscription
-     */
-    public function asStripeSubscription(array $expand = [])
-    {
-        return StripeSubscription::retrieve(
-            ['id' => $this->paddle_id, 'expand' => $expand],
-            $this->owner->stripeOptions()
-        );
     }
 }

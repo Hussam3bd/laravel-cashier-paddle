@@ -15,23 +15,23 @@ class CreateSubscriptionPaymentsTable extends Migration
     {
         Schema::create('subscription_payments', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->unsignedBigInteger('subscription_id');
-            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('subscription_id')->index();
+            $table->unsignedBigInteger('user_id')->index();
             $table->string('paddle_order_id');
             $table->string('paddle_receipt_url');
-            $table->string('paddle_status')->comment('active, trialing, past_due, deleted');
+            $table->string('paddle_status')->index()->comment('active, trialing, past_due, deleted');
             $table->string('name')->nullable();
-            $table->string('payment_method');
+            $table->string('payment_method')->index();
             $table->string('coupon')->nullable();
-            $table->string('country_code', 4)->nullable();
-            $table->string('currency_code', 4);
+            $table->string('country', 4)->nullable();
+            $table->string('currency', 3);
             $table->decimal('total_price');
             $table->decimal('paddle_fee');
             $table->decimal('tax');
             $table->decimal('earnings');
-            $table->timestamps();
 
-            $table->index(['user_id', 'subscription_id', 'paddle_status']);
+            $table->timestamp('processed_at');
+            $table->timestamps();
         });
     }
 
