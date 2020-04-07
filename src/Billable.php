@@ -150,8 +150,7 @@ trait Billable
             return $subscription->valid();
         }
 
-        return $subscription->valid() &&
-            $subscription->paddle_plan === $plan;
+        return $subscription->valid() && $subscription->paddle_plan === $plan;
     }
 
     /**
@@ -159,15 +158,11 @@ trait Billable
      *
      * @param $subscriptionId
      *
-     * @return \Laravel\Cashier\Subscription|null
+     * @return \Illuminate\Database\Eloquent\Model|\Illuminate\Database\Eloquent\Relations\HasMany|object
      */
     public function subscription($subscriptionId)
     {
-        return $this->subscriptions->sortByDesc(function ($value) {
-            return $value->created_at->getTimestamp();
-        })->first(function ($value) use ($subscriptionId) {
-            return $value->subscription_id === $subscriptionId;
-        });
+        return $this->subscriptions()->where('paddle_id', $subscriptionId)->first();
     }
 
     /**

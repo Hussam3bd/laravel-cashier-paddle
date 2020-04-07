@@ -120,7 +120,7 @@ class Subscription extends Model
     public function active()
     {
         return (is_null($this->ends_at) || $this->onGracePeriod()) &&
-            $this->paddle_status === Paddle::STATUS_ACTIVE &&
+            $this->paddle_status === Paddle::STATUS_ACTIVE ||
             $this->paddle_status === Paddle::STATUS_TRIALING;
     }
 
@@ -139,7 +139,7 @@ class Subscription extends Model
                       $query->onGracePeriod();
                   });
         })->where('paddle_status', Paddle::STATUS_ACTIVE)
-              ->where('paddle_status', Paddle::STATUS_TRIALING);
+              ->orWhere('paddle_status', Paddle::STATUS_TRIALING);
     }
 
     /**
