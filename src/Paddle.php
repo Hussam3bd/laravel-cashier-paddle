@@ -11,16 +11,41 @@ class Paddle
     const STATUS_PAST_DUE = 'past_due';
     const STATUS_ACTIVE = 'active';
     const STATUS_TRIALING = 'trialing';
+    const STATUS_PAUSED = 'paused';
     const STATUS_CANCELLED = 'deleted';
 
-    protected $vendorId = '';
-    protected $vendorAuthCode = '';
-    protected $client;
-
-    public function __construct()
+    /**
+     * @param array $data
+     *
+     * @return mixed
+     */
+    public static function subscribedUsers(array $data = [])
     {
-        $this->vendorId = config('cashier.vendor_id');
-        $this->vendorAuthCode = config('cashier.vendor_auth_code');
+        return self::post('subscription/users', $data);
+    }
+
+    /**
+     * @param $planId
+     *
+     * @return mixed
+     */
+    public static function subscribedUsersForPlan($planId)
+    {
+        return self::subscribedUsers([
+            'plan_id' => $planId,
+        ]);
+    }
+
+    /**
+     * @param $subscriptionId
+     *
+     * @return mixed
+     */
+    public static function getSubscribedUser($subscriptionId)
+    {
+        return self::subscribedUsers([
+            'subscription_id' => $subscriptionId,
+        ]);
     }
 
     /**
@@ -29,9 +54,9 @@ class Paddle
      *
      * @return mixed
      */
-    public function updateUserSubscription($subscriptionId, array $data)
+    public static function updateUserSubscription($subscriptionId, array $data)
     {
-        return $this->send('subscription/users/update', array_merge([
+        return self::post('subscription/users/update', array_merge([
             'subscription_id' => $subscriptionId,
         ], $data))->successful();
     }
@@ -42,9 +67,9 @@ class Paddle
      *
      * @return mixed
      */
-    public function changeUserPlan($subscriptionId, $newPlanId)
+    public static function changeUserPlan($subscriptionId, $newPlanId)
     {
-        return $this->updateUserSubscription($subscriptionId, [
+        return self::updateUserSubscription($subscriptionId, [
             'plan_id' => $newPlanId
         ])->successful();
     }
@@ -54,11 +79,24 @@ class Paddle
      *
      * @return mixed
      */
-    public function cancelUserSubscription($subscriptionId)
+    public static function cancelUserSubscription($subscriptionId)
     {
-        return $this->send('subscription/users_cancel', [
+        return self::post('subscription/users_cancel', [
             'subscription_id' => $subscriptionId,
         ])->successful();
+    }
+
+    /**
+     * @param             $orderId
+     * @param array       $options
+     *
+     * @return mixed
+     */
+    public static function refundPayment($orderId, array $options = [])
+    {
+        return self::post('payment/refund', array_merge([
+            'order_id' => $orderId,
+        ], $options))->successful();
     }
 
     /**
@@ -67,13 +105,11 @@ class Paddle
      *
      * @return mixed
      */
-    public function send($url, array $data = [])
+    public static function post($url, array $data = [])
     {
-        $data = array_merge($this->getPaddleAuthenticationParameters(), $data);
-
         $response = Http::withHeaders([
             'Content-Type' => 'multipart/form-data'
-        ])->post($url, $data);
+        ])->post(self::API_ENDPOINT . $url, Cashier::paddleOptions($data));
 
         return $response;
     }

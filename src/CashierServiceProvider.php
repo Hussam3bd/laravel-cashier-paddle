@@ -4,8 +4,6 @@ namespace Laravel\Cashier;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
-use Stripe\Stripe;
-use Stripe\Util\LoggerInterface;
 
 class CashierServiceProvider extends ServiceProvider
 {
@@ -16,7 +14,6 @@ class CashierServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        $this->registerLogger();
         $this->registerRoutes();
         $this->registerResources();
         $this->registerMigrations();
@@ -44,32 +41,6 @@ class CashierServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(
             __DIR__ . '/../config/cashier.php', 'cashier'
         );
-    }
-
-    /**
-     * Bind the Stripe logger interface to the Cashier logger.
-     *
-     * @return void
-     */
-    protected function bindLogger()
-    {
-        $this->app->bind(LoggerInterface::class, function ($app) {
-            return new Logger(
-                $app->make('log')->channel(config('cashier.logger'))
-            );
-        });
-    }
-
-    /**
-     * Register the Stripe logger.
-     *
-     * @return void
-     */
-    protected function registerLogger()
-    {
-        if (config('cashier.logger')) {
-            Stripe::setLogger($this->app->make(LoggerInterface::class));
-        }
     }
 
     /**

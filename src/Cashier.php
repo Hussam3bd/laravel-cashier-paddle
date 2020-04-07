@@ -18,13 +18,6 @@ class Cashier
     const VERSION = '10.7.1';
 
     /**
-     * The Stripe API version.
-     *
-     * @var string
-     */
-    const STRIPE_VERSION = '2019-08-14';
-
-    /**
      * The custom currency formatter.
      *
      * @var callable
@@ -71,17 +64,17 @@ class Cashier
     }
 
     /**
-     * Get the default Stripe API options.
+     * Get the default Paddle API options.
      *
      * @param array $options
      *
      * @return array
      */
-    public static function stripeOptions(array $options = [])
+    public static function paddleOptions(array $options = [])
     {
         return array_merge([
-            'api_key' => config('cashier.secret'),
-            'stripe_version' => static::STRIPE_VERSION,
+            'vendor_id' => config('cashier.vendor_id'),
+            'vendor_auth_code' => config('cashier.vendor_auth_code'),
         ], $options);
     }
 

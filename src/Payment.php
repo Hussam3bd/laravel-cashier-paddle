@@ -1,8 +1,7 @@
 <?php
 
-namespace Laravel\Cashier\Payment;
+namespace Laravel\Cashier;
 
-use App\Models\Payment\Subscription;
 use Illuminate\Database\Eloquent\Model;
 
 class Payment extends Model

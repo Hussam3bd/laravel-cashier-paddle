@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
-use Laravel\Cashier\Cashier;
 use Laravel\Cashier\Payment;
 use Laravel\Cashier\Subscription;
 use Symfony\Component\HttpFoundation\Response;
@@ -65,7 +64,7 @@ class WebhookController extends Controller
             $data = $payload['data']['object'];
 
             $user->subscriptions->filter(function (Subscription $subscription) use ($data) {
-                return $subscription->stripe_id === $data['id'];
+                return $subscription->paddle_id === $data['id'];
             })->each(function (Subscription $subscription) use ($data) {
                 if (isset($data['status']) && $data['status'] === 'incomplete_expired') {
                     $subscription->delete();
@@ -126,7 +125,7 @@ class WebhookController extends Controller
     {
         if ($user = $this->getUserByStripeId($payload['data']['object']['customer'])) {
             $user->subscriptions->filter(function ($subscription) use ($payload) {
-                return $subscription->stripe_id === $payload['data']['object']['id'];
+                return $subscription->paddle_id === $payload['data']['object']['id'];
             })->each(function ($subscription) {
                 $subscription->markAsCancelled();
             });
@@ -166,7 +165,7 @@ class WebhookController extends Controller
             });
 
             $user->forceFill([
-                'stripe_id' => null,
+                'paddle_id' => null,
                 'trial_ends_at' => null,
                 'card_brand' => null,
                 'card_last_four' => null,

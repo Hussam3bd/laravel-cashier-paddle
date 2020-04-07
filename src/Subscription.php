@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\Cashier\Payment;
+namespace Laravel\Cashier;
 
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
@@ -10,11 +10,6 @@ use LogicException;
 
 class Subscription extends Model
 {
-    const STATUS_PAST_DUE = 'past_due';
-    const STATUS_ACTIVE = 'active';
-    const STATUS_TRIALING = 'trialing';
-    const STATUS_CANCELLED = 'deleted';
-
     protected $fillable = [
         'user_id',
         'name',
@@ -69,9 +64,31 @@ class Subscription extends Model
      *
      * @return bool
      */
+    public function paused()
+    {
+        return $this->paddle_status === Paddle::STATUS_PAUSED;
+    }
+
+    /**
+     * Filter query by past due.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return void
+     */
+    public function scopePaused($query)
+    {
+        $query->where('paddle_status', Paddle::STATUS_PAUSED);
+    }
+
+    /**
+     * Determine if the subscription is past due.
+     *
+     * @return bool
+     */
     public function pastDue()
     {
-        return $this->paddle_status === self::STATUS_PAST_DUE;
+        return $this->paddle_status === Paddle::STATUS_PAST_DUE;
     }
 
     /**
@@ -83,7 +100,7 @@ class Subscription extends Model
      */
     public function scopePastDue($query)
     {
-        $query->where('paddle_status', self::STATUS_PAST_DUE);
+        $query->where('paddle_status', Paddle::STATUS_PAST_DUE);
     }
 
     /**
@@ -94,8 +111,8 @@ class Subscription extends Model
     public function active()
     {
         return (is_null($this->ends_at) || $this->onGracePeriod()) &&
-            $this->paddle_status === self::STATUS_ACTIVE &&
-            $this->paddle_status === self::STATUS_TRIALING;
+            $this->paddle_status === Paddle::STATUS_ACTIVE &&
+            $this->paddle_status === Paddle::STATUS_TRIALING;
     }
 
     /**
@@ -112,22 +129,8 @@ class Subscription extends Model
                   ->orWhere(function ($query) {
                       $query->onGracePeriod();
                   });
-        })->where('paddle_status', self::STATUS_ACTIVE)
-              ->where('paddle_status', self::STATUS_TRIALING);
-    }
-
-    /**
-     * Sync the Stripe status of the subscription.
-     *
-     * @return void
-     */
-    public function syncStripeStatus()
-    {
-        $subscription = $this->asself::();
-
-        $this->paddle_status = $subscription->status;
-
-        $this->save();
+        })->where('paddle_status', Paddle::STATUS_ACTIVE)
+              ->where('paddle_status', Paddle::STATUS_TRIALING);
     }
 
     /**
@@ -137,7 +140,7 @@ class Subscription extends Model
      */
     public function recurring()
     {
-        return ! $this->onTrial() && ! $this->cancelled();
+        return ! $this->onTrial() && ! $this->cancelled() && ! $this->paused();
     }
 
     /**
@@ -159,7 +162,7 @@ class Subscription extends Model
      */
     public function cancelled()
     {
-        return ! is_null($this->ends_at);
+        return ! is_null($this->ends_at) || $this->paddle_status === Paddle::STATUS_CANCELLED;
     }
 
     /**
@@ -171,7 +174,8 @@ class Subscription extends Model
      */
     public function scopeCancelled($query)
     {
-        $query->whereNotNull('ends_at');
+        $query->whereNotNull('ends_at')
+              ->where('paddle_status', '!=', Paddle::STATUS_CANCELLED);
     }
 
     /**
@@ -582,7 +586,7 @@ class Subscription extends Model
     public function invoice(array $options = [])
     {
         try {
-            return $this->user->invoice(array_merge($options, ['subscription' => $this->stripe_id]));
+            return $this->user->invoice(array_merge($options, ['subscription' => $this->paddle_id]));
         } catch (IncompletePayment $exception) {
             // Set the new Stripe subscription status immediately when payment fails...
             $this->fill([
@@ -643,7 +647,7 @@ class Subscription extends Model
     public function asStripeSubscription(array $expand = [])
     {
         return StripeSubscription::retrieve(
-            ['id' => $this->stripe_id, 'expand' => $expand],
+            ['id' => $this->paddle_id, 'expand' => $expand],
             $this->owner->stripeOptions()
         );
     }
