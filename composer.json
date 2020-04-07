@@ -1,0 +1,40 @@
+{
+  "name": "hussam3bd/laravel-cashier-paddle",
+  "description": "Subscription billing with Laravel Cashier for Paddle",
+  "type": "library",
+  "keywords": [
+    "laravel",
+    "subscriptions",
+    "recurring",
+    "billing"
+  ],
+  "homepage": "https://github.com/hussam3bd/laravel-cashier-paddle",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Hussam Abd",
+      "email": "hussam3bd@gmail.com"
+    }
+  ],
+  "require": {
+    "php": ">=7.2",
+    "ext-json": "*",
+    "ext-intl": "*",
+    "illuminate/database": "^6.0|^7.0",
+    "illuminate/support": "^6.0|^7.0",
+    "nesbot/carbon": "^2.0",
+    "guzzlehttp/guzzle": "^6.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "Laravel\\Cashier\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Laravel\\Cashier\\CashierServiceProvider"
+      ]
+    }
+  }
+}
