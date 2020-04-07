@@ -28,7 +28,6 @@ class CashierServiceProvider extends ServiceProvider
     public function register()
     {
         $this->configure();
-        $this->bindLogger();
     }
 
     /**
