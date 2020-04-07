@@ -4,12 +4,12 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Stripe Keys
+    | Paddle Keys
     |--------------------------------------------------------------------------
     |
-    | The Stripe publishable key and secret key give you access to Stripe's
+    | The Paddle publishable key and secret key give you access to Paddle's
     | API. The "publishable" key is typically used when interacting with
-    | Stripe.js while the "secret" key accesses private API endpoints.
+    | Paddle.js while the "secret" key accesses private API endpoints.
     |
     */
 
@@ -32,22 +32,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Stripe Webhooks
-    |--------------------------------------------------------------------------
-    |
-    | Your Stripe webhook secret is used to prevent unauthorized requests to
-    | your Stripe webhook handling controllers. The tolerance setting will
-    | check the drift between the current time and the signed request's.
-    |
-    */
-
-    'webhook' => [
-        'secret' => env('STRIPE_WEBHOOK_SECRET'),
-        'tolerance' => env('STRIPE_WEBHOOK_TOLERANCE', 300),
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
     | Cashier Model
     |--------------------------------------------------------------------------
     |
@@ -57,7 +41,7 @@ return [
     |
     */
 
-    'model' => env('CASHIER_MODEL', App\User::class),
+    'model' => env('CASHIER_MODEL', 'App\User'),
 
     /*
     |--------------------------------------------------------------------------
@@ -66,11 +50,11 @@ return [
     |
     | This is the default currency that will be used when generating charges
     | from your application. Of course, you are welcome to use any of the
-    | various world currencies that are currently supported via Stripe.
+    | various world currencies that are currently supported via Paddle.
     |
     */
 
-    'currency' => env('CASHIER_CURRENCY', 'usd'),
+    'currency' => env('CASHIER_CURRENCY', 'USD'),
 
     /*
     |--------------------------------------------------------------------------
@@ -92,7 +76,7 @@ return [
     |
     | If this setting is enabled, Cashier will automatically notify customers
     | whose payments require additional verification. You should listen to
-    | Stripe's webhooks in order for this feature to function correctly.
+    | Paddle's webhooks in order for this feature to function correctly.
     |
     */
 
@@ -115,15 +99,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Stripe Logger
+    | Plans
     |--------------------------------------------------------------------------
     |
-    | This setting defines which logging channel will be used by the Stripe
-    | library to write log messages. You are free to specify any of your
-    | logging channels listed inside the "logging" configuration file.
+    | Here you can defend your plans Paddle, so you can give your plan a
+    | custom key and used it to find your plan, It's up to use if you
+    | don't want to use it you can always call your plan by it's ID.
     |
     */
 
-    'logger' => env('CASHIER_LOGGER'),
+    'plans' => [
+        'example-plan-key' => [
+            'id' => 'your_plan_id_at_paddle',
+            'name' => 'Whatever you want to name your plan',
+            'trial_period' => '15',
+            'recurring' => '1 month',
+            'price' => '0.00',
+        ]
+
+        // ...
+    ],
 
 ];

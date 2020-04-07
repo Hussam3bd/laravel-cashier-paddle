@@ -79,6 +79,16 @@ class Cashier
     }
 
     /**
+     * @param $plan
+     *
+     * @return bool|\Illuminate\Config\Repository|int|mixed|string
+     */
+    public static function getPlanId($plan)
+    {
+        return is_numeric($plan) ? $plan : config("cashier.plans.{$plan}.id", $plan);
+    }
+
+    /**
      * Set the custom currency formatter.
      *
      * @param callable $callback

@@ -199,7 +199,6 @@ class Subscription extends Model
         $query->whereNull('ends_at');
     }
 
-
     /**
      * Determine if the subscription is within its trial period.
      *
@@ -625,16 +624,10 @@ class Subscription extends Model
     /**
      * Get the latest payment for a Subscription.
      *
-     * @return \Laravel\Cashier\Payment|null
+     * @return Model|Payment|object|null
      */
     public function latestPayment()
     {
-        $paymentIntent = $this->asStripeSubscription(['latest_invoice.payment_intent'])
-            ->latest_invoice
-            ->payment_intent;
-
-        return $paymentIntent
-            ? new Payment($paymentIntent)
-            : null;
+        return $this->payments()->latest()->first();
     }
 }

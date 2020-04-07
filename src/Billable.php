@@ -71,11 +71,12 @@ trait Billable
     /**
      * Begin creating a new subscription.
      *
-     * @param array $data
+     * @param array  $data
+     * @param string $name
      *
      * @return \Illuminate\Database\Eloquent\Model
      */
-    public function newSubscription(array $data = [])
+    public function newSubscription(array $data = [], string $name = 'default')
     {
         $trialEndsAt = null;
         if ($data['status'] === Paddle::STATUS_TRIALING) {
@@ -85,6 +86,7 @@ trait Billable
 
         return $this->subscriptions()->create([
             'user_id' => $this->id,
+            'name' => $name,
             'paddle_id' => $data['subscription_id'],
             'paddle_plan_id' => $data['subscription_plan_id'],
             'paddle_cancel_url' => $data['cancel_url'],
@@ -117,7 +119,7 @@ trait Billable
         }
 
         return $subscription && $subscription->onTrial() &&
-            $subscription->paddle_plan === $plan;
+            $subscription->paddle_plan_id === Cashier::getPlanId($plan);
     }
 
     /**
@@ -150,19 +152,23 @@ trait Billable
             return $subscription->valid();
         }
 
-        return $subscription->valid() && $subscription->paddle_plan === $plan;
+        return $subscription->valid() && $subscription->paddle_plan_id === Cashier::getPlanId($plan);
     }
 
     /**
      * Get a subscription instance by name.
      *
-     * @param $subscriptionId
+     * @param string $subscription
      *
-     * @return \Illuminate\Database\Eloquent\Model|\Illuminate\Database\Eloquent\Relations\HasMany|object
+     * @return \Laravel\Cashier\Subscription|null
      */
-    public function subscription($subscriptionId)
+    public function subscription($subscription = 'default')
     {
-        return $this->subscriptions()->where('paddle_id', $subscriptionId)->first();
+        return $this->subscriptions->sortByDesc(function ($value) {
+            return $value->created_at->getTimestamp();
+        })->first(function ($value) use ($subscription) {
+            return $value->name === $subscription;
+        });
     }
 
     /**
@@ -399,7 +405,7 @@ trait Billable
         }
 
         foreach ((array)$plans as $plan) {
-            if ($subscription->paddle_plan === $plan) {
+            if ($subscription->paddle_plan_id === Cashier::getPlanId($plan)) {
                 return true;
             }
         }
@@ -417,7 +423,7 @@ trait Billable
     public function onPlan($plan)
     {
         return ! is_null($this->subscriptions->first(function ($value) use ($plan) {
-            return $value->paddle_plan === $plan && $value->valid();
+            return $value->paddle_plan_id === Cashier::getPlanId($plan) && $value->valid();
         }));
     }
 

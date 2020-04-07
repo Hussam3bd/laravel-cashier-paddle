@@ -23,15 +23,16 @@ class CreateSubscriptionPaymentsTable extends Migration
             $table->string('name')->nullable();
             $table->string('payment_method')->index();
             $table->string('coupon')->nullable();
-            $table->string('country', 4)->nullable();
+            $table->string('country', 3)->nullable();
             $table->string('currency', 3);
-            $table->decimal('total_price');
-            $table->decimal('paddle_fee');
+            $table->decimal('subtotal');
             $table->decimal('tax');
-            $table->decimal('earnings');
-
-            $table->timestamp('processed_at');
+            $table->decimal('fee');
+            $table->decimal('total');
+            $table->timestamp('processed_at')->nullable();
             $table->timestamps();
+
+            $table->foreign('subscription_id')->references('id')->on('subscriptions')->onDelete('cascade');
         });
     }
 

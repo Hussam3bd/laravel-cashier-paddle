@@ -16,15 +16,13 @@ class CreateSubscriptionsTable extends Migration
         Schema::create('subscriptions', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->unsignedBigInteger('user_id');
-            $table->string('name');
+            $table->string('name')->nullable();
             $table->string('paddle_id');
             $table->string('paddle_plan_id');
             $table->string('paddle_status')->comment('active, trialing, past_due, deleted');
             $table->string('paddle_cancel_url')->nullable();
             $table->string('paddle_update_url')->nullable();
             $table->integer('quantity')->default(1);
-            $table->string('currency_code', 4);
-            $table->decimal('price');
             $table->timestamp('trial_ends_at')->nullable();
             $table->timestamp('ends_at')->nullable();
             $table->timestamps();

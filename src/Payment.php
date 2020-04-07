@@ -15,12 +15,25 @@ class Payment extends Model
         'name',
         'payment_method',
         'coupon',
-        'country_code',
-        'currency_code',
-        'total_price',
-        'paddle_fee',
+        'country',
+        'currency',
+        'subtotal',
         'tax',
+        'fee',
+        'total',
         'earnings',
+        'processed_at',
+    ];
+
+    /**
+     * The attributes that should be mutated to dates.
+     *
+     * @var array
+     */
+    protected $dates = [
+        'processed_at',
+        'created_at',
+        'updated_at',
     ];
 
     /**
