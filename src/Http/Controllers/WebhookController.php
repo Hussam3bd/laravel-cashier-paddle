@@ -103,41 +103,7 @@ class WebhookController extends Controller
                     $payload['old_subscription_id'] :
                     $payload['subscription_id'];
             })->each(function (Subscription $subscription) use ($payload) {
-                // Subscription...
-                if (isset($payload['subscription_id'])) {
-                    $subscription->paddle_id = $payload['subscription_id'];
-                }
-
-                // Plan...
-                if (isset($payload['subscription_plan_id'])) {
-                    $subscription->paddle_plan_id = $payload['subscription_plan_id'];
-                }
-
-                // Quantity...
-                if (isset($payload['quantity'])) {
-                    $subscription->quantity = $payload['quantity'];
-                }
-
-                // Cancel url...
-                if (isset($payload['cancel_url'])) {
-                    $subscription->paddle_cancel_url = $payload['cancel_url'];
-                }
-
-                // Update url...
-                if (isset($payload['update_url'])) {
-                    $subscription->paddle_update_url = $payload['update_url'];
-                }
-
-                // Paused at date...
-                if (isset($payload['paused_at'])) {
-                }
-
-                // Status...
-                if (isset($payload['status'])) {
-                    $subscription->paddle_status = $payload['status'];
-                }
-
-                $subscription->save();
+                $subscription->updateSubscription($payload);
             });
         }
 
@@ -155,22 +121,23 @@ class WebhookController extends Controller
     {
         if ($user = $this->getUserByPaddleId($payload['user_id'])) {
             if ($subscription = $user->subscription()) {
-                $subscription->payments()
-                             ->create([
-                                 'paddle_order_id' => $payload['order_id'],
-                                 'paddle_receipt_url' => $payload['receipt_url'],
-                                 'name' => $payload['plan_name'],
-                                 'payment_method' => $payload['payment_method'],
-                                 'coupon' => $payload['coupon'],
-                                 'country' => $payload['country'],
-                                 'currency' => $payload['currency'],
-                                 'subtotal' => $payload['unit_price'],
-                                 'tax' => $payload['balance_tax'],
-                                 'fee' => $payload['balance_fee'],
-                                 'total' => $payload['balance_earnings'],
-                                 'quantity' => $payload['quantity'],
-                                 'processed_at' => $payload['event_time'],
-                             ]);
+                $payment = $subscription->payments()
+                                        ->firstOrNew([
+                                            'paddle_order_id' => $payload['order_id'],
+                                        ]);
+
+                $payment->paddle_receipt_url = $payload['receipt_url'];
+                $payment->name = $payload['plan_name'];
+                $payment->payment_method = $payload['payment_method'];
+                $payment->coupon = $payload['coupon'];
+                $payment->country = $payload['country'];
+                $payment->currency = $payload['currency'];
+                $payment->subtotal = $payload['unit_price'];
+                $payment->tax = $payload['balance_tax'];
+                $payment->fee = $payload['balance_fee'];
+                $payment->total = $payload['balance_earnings'];
+                $payment->quantity = $payload['quantity'];
+                $payment->processed_at = $payload['event_time'];
 
                 $this->handleSubscriptionUpdated($payload);
             }
@@ -185,6 +152,18 @@ class WebhookController extends Controller
      * @return Response
      */
     protected function handleSubscriptionPaymentFailed(array $payload)
+    {
+        $this->handleSubscriptionUpdated($payload);
+
+        return $this->successMethod();
+    }
+
+    /**
+     * @param array $payload
+     *
+     * @return Response
+     */
+    protected function handleSubscriptionPaymentRefunded(array $payload)
     {
         $this->handleSubscriptionUpdated($payload);
 

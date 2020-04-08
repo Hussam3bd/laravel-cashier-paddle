@@ -630,4 +630,56 @@ class Subscription extends Model
     {
         return $this->payments()->latest()->first();
     }
+
+    /**
+     * Update subscription data
+     *
+     * @param array $data
+     *
+     * @return Subscription
+     */
+    public function updateSubscription(array $data)
+    {
+        // Subscription...
+        if (isset($data['subscription_id'])) {
+            $this->paddle_id = $data['subscription_id'];
+        }
+
+        // Plan...
+        if (isset($data['subscription_plan_id'])) {
+            $this->paddle_plan_id = $data['subscription_plan_id'];
+        }
+
+        // Quantity...
+        if (isset($data['quantity'])) {
+            $this->quantity = $data['quantity'];
+        }
+
+        // Cancel url...
+        if (isset($data['cancel_url'])) {
+            $this->paddle_cancel_url = $data['cancel_url'];
+        }
+
+        // Update url...
+        if (isset($data['update_url'])) {
+            $this->paddle_update_url = $data['update_url'];
+        }
+
+        // Paused at date...
+        if (isset($data['paused_at'])) {
+        }
+
+        // Status...
+        if (isset($data['status'])) {
+            $this->paddle_status = $data['status'];
+
+            if ($data['status'] === Paddle::STATUS_ACTIVE && ! $this->active()) {
+                $this->ends_at = null;
+            }
+        }
+
+        $this->save();
+
+        return $this;
+    }
 }
