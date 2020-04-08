@@ -82,7 +82,7 @@ class WebhookController extends Controller
                 $cancellationEffectiveAt = Carbon::parse("{$payload['cancellation_effective_date']} {$time}");
             }
 
-            $user->subscription($payload['subscription_id'])->cancel($cancellationEffectiveAt);
+            $user->subscription()->cancel($cancellationEffectiveAt);
         }
 
         return $this->successMethod();
@@ -99,7 +99,9 @@ class WebhookController extends Controller
     {
         if ($user = $this->getUserByPaddleId($payload['user_id'])) {
             $user->subscriptions->filter(function (Subscription $subscription) use ($payload) {
-                return $subscription->paddle_id === $payload['old_subscription_id'];
+                return $subscription->paddle_id === isset($payload['old_subscription_id']) ?
+                    $payload['old_subscription_id'] :
+                    $payload['subscription_id'];
             })->each(function (Subscription $subscription) use ($payload) {
                 // Subscription...
                 if (isset($payload['subscription_id'])) {
@@ -152,14 +154,13 @@ class WebhookController extends Controller
     protected function handleSubscriptionPaymentSucceeded(array $payload)
     {
         if ($user = $this->getUserByPaddleId($payload['user_id'])) {
-            if ($subscription = $user->subscription($payload['subscription_id'])) {
+            if ($subscription = $user->subscription()) {
                 $subscription->payments()
                              ->create([
                                  'paddle_order_id' => $payload['order_id'],
                                  'paddle_receipt_url' => $payload['receipt_url'],
-                                 'paddle_status' => $payload['status'],
-                                 'name' => $payload['name'],
-                                 'payment_method' => $payload['coupon'],
+                                 'name' => $payload['plan_name'],
+                                 'payment_method' => $payload['payment_method'],
                                  'coupon' => $payload['coupon'],
                                  'country' => $payload['country'],
                                  'currency' => $payload['currency'],
@@ -167,8 +168,11 @@ class WebhookController extends Controller
                                  'tax' => $payload['balance_tax'],
                                  'fee' => $payload['balance_fee'],
                                  'total' => $payload['balance_earnings'],
+                                 'quantity' => $payload['quantity'],
                                  'processed_at' => $payload['event_time'],
                              ]);
+
+                $this->handleSubscriptionUpdated($payload);
             }
         }
 
@@ -182,6 +186,8 @@ class WebhookController extends Controller
      */
     protected function handleSubscriptionPaymentFailed(array $payload)
     {
+        $this->handleSubscriptionUpdated($payload);
+
         return $this->successMethod();
     }
 

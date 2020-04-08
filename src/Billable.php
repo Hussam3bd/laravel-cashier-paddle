@@ -13,6 +13,16 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 trait Billable
 {
     /**
+     * Initialize the billable trait for an instance.
+     *
+     * @return void
+     */
+    public function initializeBillable()
+    {
+        $this->dates[] = 'trial_ends_at';
+    }
+
+    /**
      * Refund a customer for a charge.
      *
      * @param       $orderId

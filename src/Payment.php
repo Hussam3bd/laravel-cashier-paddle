@@ -6,12 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class Payment extends Model
 {
+    protected $table = 'subscription_payments';
+
     protected $fillable = [
         'subscription_id',
         'user_id',
         'paddle_order_id',
         'paddle_receipt_url',
-        'paddle_status',
         'name',
         'payment_method',
         'coupon',
@@ -22,6 +23,7 @@ class Payment extends Model
         'fee',
         'total',
         'earnings',
+        'quantity',
         'processed_at',
     ];
 

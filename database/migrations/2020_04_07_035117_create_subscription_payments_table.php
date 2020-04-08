@@ -19,7 +19,6 @@ class CreateSubscriptionPaymentsTable extends Migration
             $table->unsignedBigInteger('user_id')->index();
             $table->string('paddle_order_id');
             $table->string('paddle_receipt_url');
-            $table->string('paddle_status')->index()->comment('active, trialing, past_due, deleted');
             $table->string('name')->nullable();
             $table->string('payment_method')->index();
             $table->string('coupon')->nullable();
@@ -29,6 +28,7 @@ class CreateSubscriptionPaymentsTable extends Migration
             $table->decimal('tax');
             $table->decimal('fee');
             $table->decimal('total');
+            $table->integer('quantity')->default(1);
             $table->timestamp('processed_at')->nullable();
             $table->timestamps();
 
